@@ -4,7 +4,7 @@ use colored::Colorize;
 use std::env;
 
 pub fn execute() -> Result<()> {
-    let current_dir = env::current_dir()?;
+    let current_dir: std::path::PathBuf = env::current_dir()?;
 
     match Repository::init(&current_dir) {
         Ok(repo) => {

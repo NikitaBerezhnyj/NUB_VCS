@@ -20,7 +20,7 @@ pub struct Repository {
 impl Repository {
     /// Create a new repository structure
     pub fn init(path: &Path) -> Result<Self> {
-        let nub_dir = path.join(NUB_DIR);
+        let nub_dir: PathBuf = path.join(NUB_DIR);
 
         // Check if repository already exists
         if nub_dir.exists() {
@@ -34,7 +34,7 @@ impl Repository {
         fs::create_dir(nub_dir.join(REFS_DIR))?;
         fs::create_dir(nub_dir.join(REFS_DIR).join(HEADS_DIR))?;
 
-        let repo = Repository {
+        let repo: Repository = Repository {
             root: path.to_path_buf(),
             nub_dir,
         };
@@ -53,10 +53,10 @@ impl Repository {
 
     /// Find repository in current or parent directories
     pub fn find() -> Result<Self> {
-        let mut current = std::env::current_dir()?;
+        let mut current: PathBuf = std::env::current_dir()?;
 
         loop {
-            let nub_dir = current.join(NUB_DIR);
+            let nub_dir: PathBuf = current.join(NUB_DIR);
             if nub_dir.exists() && nub_dir.is_dir() {
                 return Ok(Repository {
                     root: current,
@@ -71,21 +71,21 @@ impl Repository {
     }
 
     fn init_head(&self) -> Result<()> {
-        let head_path = self.nub_dir.join(HEAD_FILE);
+        let head_path: PathBuf = self.nub_dir.join(HEAD_FILE);
         fs::write(head_path, "ref: refs/heads/main")?;
         Ok(())
     }
 
     fn init_index(&self) -> Result<()> {
-        let index_path = self.nub_dir.join(INDEX_FILE);
+        let index_path: PathBuf = self.nub_dir.join(INDEX_FILE);
         // Create empty JSON array for index
         fs::write(index_path, "[]")?;
         Ok(())
     }
 
     fn init_config(&self) -> Result<()> {
-        let config_path = self.nub_dir.join(CONFIG_FILE);
-        let default_config = serde_json::json!({
+        let config_path: PathBuf = self.nub_dir.join(CONFIG_FILE);
+        let default_config: serde_json::Value = serde_json::json!({
             "user": {
                 "name": "NUB User",
                 "email": "user@nub.local"
@@ -131,8 +131,8 @@ mod tests {
 
     #[test]
     fn test_init_creates_structure() {
-        let temp = TempDir::new().unwrap();
-        let repo = Repository::init(temp.path()).unwrap();
+        let temp: TempDir = TempDir::new().unwrap();
+        let repo: Repository = Repository::init(temp.path()).unwrap();
 
         assert!(repo.nub_dir.exists());
         assert!(repo.objects_dir().exists());
@@ -145,17 +145,17 @@ mod tests {
 
     #[test]
     fn test_init_twice_fails() {
-        let temp = TempDir::new().unwrap();
+        let temp: TempDir = TempDir::new().unwrap();
         Repository::init(temp.path()).unwrap();
-        let result = Repository::init(temp.path());
+        let result: std::result::Result<Repository, anyhow::Error> = Repository::init(temp.path());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_head_content() {
-        let temp = TempDir::new().unwrap();
-        let repo = Repository::init(temp.path()).unwrap();
-        let head_content = fs::read_to_string(repo.head_path()).unwrap();
+        let temp: TempDir = TempDir::new().unwrap();
+        let repo: Repository = Repository::init(temp.path()).unwrap();
+        let head_content: String = fs::read_to_string(repo.head_path()).unwrap();
         assert_eq!(head_content, "ref: refs/heads/main");
     }
 }

@@ -1,5 +1,6 @@
+pub mod add;
+pub mod commit;
 pub mod init;
-// pub mod add;
-// pub mod commit;
+pub mod reset;
+pub mod status;
 // pub mod log;
-// pub mod status;

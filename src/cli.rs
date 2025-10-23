@@ -1,4 +1,4 @@
-use crate::commands;
+use crate::commands::{self};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
@@ -12,13 +12,17 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Initialize a new repository
     Init,
-    // Заготовки для майбутніх команд
-    // Add { files: Vec<String> },
-    // Commit { #[arg(short, long)] message: String },
+    Add {
+        files: Vec<String>,
+    },
+    Commit {
+        #[arg(short, long)]
+        message: String,
+    },
+    Status,
+    Reset,
     // Log,
-    // Status,
     // Diff { #[arg(long)] staged: bool },
     // Checkout { target: String },
     // Branch { name: Option<String> },
@@ -29,6 +33,10 @@ impl Cli {
     pub fn execute(self) -> Result<()> {
         match self.command {
             Commands::Init => commands::init::execute(),
+            Commands::Add { files } => commands::add::execute(files),
+            Commands::Commit { message } => commands::commit::execute(message),
+            Commands::Status => commands::status::execute(),
+            Commands::Reset => commands::reset::execute(),
         }
     }
 }

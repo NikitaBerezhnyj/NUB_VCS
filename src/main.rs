@@ -9,6 +9,6 @@ use clap::Parser;
 use cli::Cli;
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
+    let cli: Cli = Cli::parse();
     cli.execute()
 }

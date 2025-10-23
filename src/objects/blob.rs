@@ -7,7 +7,7 @@ pub struct Blob {
 
 impl Blob {
     pub fn new(content: Vec<u8>) -> Self {
-        let hash = Self::calculate_hash(&content);
+        let hash: String = Self::calculate_hash(&content);
         Blob { content, hash }
     }
 
