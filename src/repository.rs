@@ -18,16 +18,13 @@ pub struct Repository {
 }
 
 impl Repository {
-    /// Create a new repository structure
     pub fn init(path: &Path) -> Result<Self> {
         let nub_dir: PathBuf = path.join(NUB_DIR);
 
-        // Check if repository already exists
         if nub_dir.exists() {
             return Err(NubError::RepositoryAlreadyExists.into());
         }
 
-        // Create directory structure
         fs::create_dir(&nub_dir)?;
         fs::create_dir(nub_dir.join(OBJECTS_DIR))?;
         fs::create_dir(nub_dir.join(COMMITS_DIR))?;
@@ -39,19 +36,13 @@ impl Repository {
             nub_dir,
         };
 
-        // Initialize HEAD file
         repo.init_head()?;
-
-        // Initialize empty index
         repo.init_index()?;
-
-        // Initialize config
         repo.init_config()?;
 
         Ok(repo)
     }
 
-    /// Find repository in current or parent directories
     pub fn find() -> Result<Self> {
         let mut current: PathBuf = std::env::current_dir()?;
 
@@ -78,7 +69,6 @@ impl Repository {
 
     fn init_index(&self) -> Result<()> {
         let index_path: PathBuf = self.nub_dir.join(INDEX_FILE);
-        // Create empty JSON array for index
         fs::write(index_path, "[]")?;
         Ok(())
     }

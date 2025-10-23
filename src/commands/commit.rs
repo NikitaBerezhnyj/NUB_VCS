@@ -6,13 +6,14 @@ use anyhow::Result;
 use colored::Colorize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
 pub fn execute(message: String) -> Result<()> {
     let repo: Repository = Repository::find()?;
-
     let index_path: PathBuf = repo.index_path();
+
     if !index_path.exists() {
         return Err(NubError::InvalidRepository.into());
     }
@@ -25,15 +26,68 @@ pub fn execute(message: String) -> Result<()> {
         return Ok(());
     }
 
-    let mut tree: Tree = Tree::new();
+    let head_ref: String = fs::read_to_string(repo.head_path())?;
+    let head_ref_path: &str = head_ref.trim_start_matches("ref: ").trim();
+    let current_branch: PathBuf = repo.nub_dir.join(head_ref_path);
+
+    if let Some(parent) = current_branch.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let parent_hash: Option<String> = if current_branch.exists() {
+        Some(fs::read_to_string(&current_branch)?.trim().to_string())
+    } else {
+        None
+    };
+
+    let mut all_files: HashMap<String, String> = if let Some(ref parent) = parent_hash {
+        let commit_path = repo.commits_dir().join(parent);
+        if commit_path.exists() {
+            let commit_data = fs::read_to_string(commit_path)?;
+            let commit_json: Value = serde_json::from_str(&commit_data)?;
+
+            if let Some(tree_hash) = commit_json.get("tree").and_then(|v| v.as_str()) {
+                let tree_path = repo.objects_dir().join(tree_hash);
+                if tree_path.exists() {
+                    let tree_data = fs::read_to_string(tree_path)?;
+                    let tree_json: Value = serde_json::from_str(&tree_data)?;
+
+                    tree_json["entries"]
+                        .as_array()
+                        .unwrap_or(&vec![])
+                        .iter()
+                        .filter_map(|e| {
+                            Some((
+                                e.get("name")?.as_str()?.to_string(),
+                                e.get("hash")?.as_str()?.to_string(),
+                            ))
+                        })
+                        .collect()
+                } else {
+                    HashMap::new()
+                }
+            } else {
+                HashMap::new()
+            }
+        } else {
+            HashMap::new()
+        }
+    } else {
+        HashMap::new()
+    };
+
     for entry in &index {
         if let (Some(path), Some(hash)) = (entry.get("path"), entry.get("hash")) {
-            tree.add_entry(
+            all_files.insert(
                 path.as_str().unwrap().to_string(),
                 hash.as_str().unwrap().to_string(),
-                EntryType::Blob,
             );
         }
+    }
+
+    let mut tree: Tree = Tree::new();
+    for (path, hash) in all_files {
+        tree.add_entry(path, hash, EntryType::Blob);
     }
 
     let tree_json: String = serde_json::to_string(&tree)?;
@@ -46,7 +100,12 @@ pub fn execute(message: String) -> Result<()> {
 
     let head_ref: String = fs::read_to_string(repo.head_path())?;
     let head_ref_path: &str = head_ref.trim_start_matches("ref: ").trim();
-    let current_branch: PathBuf = repo.root.join(".nub-vcs").join(head_ref_path);
+
+    let current_branch: PathBuf = repo.nub_dir.join(head_ref_path);
+
+    if let Some(parent) = current_branch.parent() {
+        fs::create_dir_all(parent)?;
+    }
 
     let parent_hash: Option<String> = if current_branch.exists() {
         Some(fs::read_to_string(&current_branch)?.trim().to_string())
@@ -84,7 +143,7 @@ pub fn execute(message: String) -> Result<()> {
         "✓".green().bold(),
         commit_hash[..8].cyan()
     );
-    println!("    {}", message);
+    println!("  {}", message);
 
     Ok(())
 }
